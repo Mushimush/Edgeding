@@ -1,8 +1,9 @@
-import cv2
 import numpy as np
-from scipy.signal import convolve2d
-from scipy import ndimage
+import os
+import cv2
 import matplotlib.pyplot as plt
+from scipy import ndimage
+from scipy.signal import convolve2d
 
 
 def gaussian_kernel(size, sigma):
@@ -20,6 +21,10 @@ def sobel_filters(img):
     sobel_h = np.array([[-1, -2, -1],
                         [0, 0, 0],
                         [1, 2, 1]])
+
+    # sobel_x = cv2.Sobel(img, cv2.CV_8U, 1, 0, ksize=3)
+    # sobel_y = cv2.Sobel(img, cv2.CV_8U, 0, 1, ksize=3)
+    # edged_img = cv2.addWeighted(sobel_x, 0.5, sobel_y, 0.5, 0)
 
     vertical = ndimage.convolve(img, sobel_v)
     horizontal = ndimage.convolve(img, sobel_h)
@@ -60,7 +65,7 @@ def non_max_suppression(img, theta):
     return suppressed
 
 
-def hysteresis_thresholding(img, low_thresh_ratio=0.25, high_thresh_ratio=0.35):
+def hysteresis_thresholding(img, low_thresh_ratio=0.09, high_thresh_ratio=0.15):
     low_thresh = np.max(img) * low_thresh_ratio
     print(low_thresh)
     high_thresh = np.max(img) * high_thresh_ratio
@@ -80,50 +85,42 @@ def hysteresis_thresholding(img, low_thresh_ratio=0.25, high_thresh_ratio=0.35):
     return weak_edges
 
 
-# Load the image
-img = cv2.imread('retina2movingavg/172.bmp')
-img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-# Create a Gaussian pyramid with 6 levels
-gaussian_pyramid = [img]
-for i in range(6):
-    img = cv2.pyrDown(img)
-    gaussian_pyramid.append(img)
+# Load the input image
+img = cv2.imread('retina2movingavg/332.bmp', cv2.IMREAD_GRAYSCALE)
 
-# Create a Laplacian pyramid by subtracting each level of the Gaussian pyramid from the next level
-laplacian_pyramid = []
-for i in range(5):
-    img_up = cv2.pyrUp(gaussian_pyramid[i+1])
-    img_up = cv2.resize(
-        img_up, (gaussian_pyramid[i].shape[1], gaussian_pyramid[i].shape[0]))
-    laplacian = cv2.subtract(gaussian_pyramid[i], img_up)
-    laplacian_pyramid.append(laplacian)
-
-# Add the last level of the Gaussian pyramid to the Laplacian pyramid
-laplacian_pyramid.append(gaussian_pyramid[5])
-
-# ret, thresh_img = cv2.threshold(
-#     laplacian_pyramid[0], 20, 255, cv2.THRESH_BINARY)
-
-# cv2.imshow('hi', laplacian_pyramid[0])
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
 
 # Apply Gaussian smoothing
-gaussian_kernel = gaussian_kernel(5, 3)
-img_smooth = convolve2d(laplacian_pyramid[0], gaussian_kernel, mode="same")
-
+gaussian_kernel = gaussian_kernel(9, 3)
+img_smooth = convolve2d(img, gaussian_kernel, mode="same")
 
 # Detect edges using Sobel filters
 edge_magnitude, theta = sobel_filters(img_smooth)
 
 # Perform non-maximum suppression
 suppressed_edges = non_max_suppression(edge_magnitude, theta)
-# ret, thresh_img = cv2.threshold(
-#     suppressed_edges, 3, 255, cv2.THRESH_BINARY)
+
 # Apply hysteresis thresholding
-print(np.min(suppressed_edges), np.max(suppressed_edges))
 edge_map = hysteresis_thresholding(suppressed_edges)
 
+
+# Visualize the binary edge map
+# Display the original image
+# plt.subplot(1, 4, 1)
+# plt.imshow(img, cmap='gray')
+# plt.title('Original')
+
+# # Display the smoothed image
+# plt.subplot(1, 4, 2)
+# plt.imshow(img_smooth, cmap='gray')
+# plt.title('Smoothed')
+
+# # Display the edges after non-maximum suppression
+# plt.subplot(1, 4, 3)
+# plt.imshow(edge_magnitude, cmap='gray')
+# plt.title('Edges after Sobel')
+
+# Display the edges after non-maximum suppression
+plt.subplot(1, 1, 1)
 plt.imshow(edge_map, cmap='gray')
 plt.title('final')
 plt.show()

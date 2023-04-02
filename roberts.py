@@ -43,7 +43,6 @@ horizontal = ndimage.convolve(img_smooth, roberts_cross_h)
 
 # Compute tpythe edge image using the squared magnitudes of horizontal and vertical
 edged_img = np.sqrt(np.square(horizontal) + np.square(vertical))
-# edged_img *= 255
 edged_img = edged_img.astype('uint8')
 
 # # Convert the filtered image back to a PIL image
